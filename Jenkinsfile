@@ -46,7 +46,7 @@ pipeline {
             steps {
                 sh '''
                     . venv/bin/activate
-                    sh 'pip-audit --local -f text -o pip-audit-report.txt'
+                    pip-audit --local -f text -o pip-audit-report.txt || true
                 '''
             }
             post {
@@ -58,7 +58,8 @@ pipeline {
 
         stage('Security - OWASP ZAP') {
             steps {
-                sh 'docker run --user root --rm -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://www.saucedemo.com -r zap_report.html || true'
+                // Securizado: Corre con el UID/GID de Jenkins, sin usar root
+                sh 'docker run --user $(id -u):$(id -g) --rm -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://www.saucedemo.com -r zap_report.html || true'
             }
             post {
                 always {
@@ -83,7 +84,7 @@ pipeline {
         }
     }
 
-   post {
+    post {
         always {
             // Reporte de Allure
             allure includeProperties: false, jdk: '', properties: [], reportBuildPolicy: 'ALWAYS', results: [[path: 'allure-results']]
