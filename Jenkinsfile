@@ -59,8 +59,7 @@ pipeline {
         stage('Security - OWASP ZAP') {
             steps {
                 // Securizado: Corre con el UID/GID de Jenkins, sin usar root
-                sh 'docker run --user $(id -u):$(id -g) --rm -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://www.saucedemo.com -r zap_report.html || true'
-            }
+sh 'docker run --user root --rm -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://www.saucedemo.com -r zap_report.html || true'            }
             post {
                 always {
                     publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: '.', reportFiles: 'zap_report.html', reportName: 'OWASP ZAP Report', reportTitles: ''])
