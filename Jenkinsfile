@@ -46,7 +46,7 @@ pipeline {
             steps {
                 sh '''
                     . venv/bin/activate
-                    pip-audit --local -f txt -o pip-audit-report.txt || true
+                    pip-audit --local  txt -o pip-audit-report.txt || true
                 '''
             }
             post {
