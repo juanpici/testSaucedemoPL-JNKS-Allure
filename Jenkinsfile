@@ -13,9 +13,9 @@ pipeline {
                 sh '''
                     python3 -m venv venv
                     . venv/bin/activate
-                    # Corregido: cambiamos allure-playwright por allure-pytest
                     pip install pytest-playwright allure-pytest
-                    playwright install --with-deps chromium
+                    # Corregido: sin --with-deps para que no pida sudo
+                    playwright install chromium
                 '''
             }
         }
@@ -29,11 +29,4 @@ pipeline {
             }
         }
     }
-    
-    // Comentamos esto un segundo para que Jenkins no falle por el plugin faltante
-    // post {
-    //     always {
-    //         allure includeProperties: false, jdk: '', results: [[path: 'allure-results']]
-    //     }
-    // }
 }
