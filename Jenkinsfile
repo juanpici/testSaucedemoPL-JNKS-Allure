@@ -1,11 +1,6 @@
 pipeline {
     agent any
-
-    parameters {
-        choice(name: 'BROWSER', choices: ['chromium', 'firefox', 'webkit'], description: 'Navegador para Playwright')
-        choice(name: 'K6_VUS', choices: ['3', '5', '10'], description: 'Usuarios virtuales concurrentes para K6')
-    }
-
+    
     stages {
         stage('Checkout') {
             steps {
@@ -18,8 +13,8 @@ pipeline {
                 sh '''
                     python3 -m venv venv
                     . venv/bin/activate
-                    pip install pytest-playwright allure-pytest flake8
-                    playwright install chromium firefox webkit
+                    pip install pytest-playwright allure-pytest flake8 bandit pip-audit
+                    playwright install chromium
                 '''
             }
         }
@@ -33,29 +28,68 @@ pipeline {
             }
         }
 
+        stage('Security - Bandit') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    bandit -r . -x ./venv -f txt -o bandit-report.txt || true
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'bandit-report.txt', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Security - pip-audit') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    pip-audit --local -f txt -o pip-audit-report.txt || true
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'pip-audit-report.txt', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Security - OWASP ZAP') {
+            steps {
+                sh 'docker run --user root --rm -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://www.saucedemo.com -r zap_report.html || true'
+            }
+            post {
+                always {
+                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: '.', reportFiles: 'zap_report.html', reportName: 'OWASP ZAP Report', reportTitles: ''])
+                }
+            }
+        }
+
         stage('Run Playwright Tests') {
             steps {
-                sh """
+                sh '''
                     . venv/bin/activate
-                    pytest test_saucedemo.py --browser=${params.BROWSER} --alluredir=allure-results || true
-                """
+                    pytest test_saucedemo.py --browser=chromium --alluredir=allure-results
+                '''
             }
         }
 
         stage('Run Performance Tests (k6)') {
             steps {
-                sh "k6 run -u ${params.K6_VUS} test_perf.js"
+                sh 'k6 run -u 3 test_perf.js'
             }
         }
     }
 
     post {
         always {
-            // Reporte visual interactivo de Playwright
-            allure includeProperties: false, jdk: '', results: [[path: 'allure-results']]
+            // Reporte de Allure
+            allure includeProperties: false, jdk: '', properties: [], reportBuildPolicy: 'ALWAYS', results: [[path: 'allure-results']]
             
-            // Gráficos de tendencias históricas de rendimiento
-            perfReport sourceDataFiles: 'k6-report.xml'
+            // Reporte de k6
+            perfReport creatingParserWithPercentiles: '0,50,90,95,100', filterRegex: '', sourceDataFiles: 'k6-report.xml'
         }
     }
 }
