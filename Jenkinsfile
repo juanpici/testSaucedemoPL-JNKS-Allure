@@ -83,13 +83,13 @@ pipeline {
         }
     }
 
-    post {
+   post {
         always {
             // Reporte de Allure
             allure includeProperties: false, jdk: '', properties: [], reportBuildPolicy: 'ALWAYS', results: [[path: 'allure-results']]
             
-            // Reporte de k6
-            perfReport creatingParserWithPercentiles: '0,50,90,95,100', filterRegex: '', sourceDataFiles: 'k6-report.xml'
+            // Reporte de k6 simplificado
+            perfReport sourceDataFiles: 'k6-report.xml'
         }
     }
 }
