@@ -14,7 +14,6 @@ pipeline {
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install pytest-playwright allure-pytest
-                    # Corregido: sin --with-deps para que no pida sudo
                     playwright install chromium
                 '''
             }
@@ -27,6 +26,13 @@ pipeline {
                     pytest test_saucedemo.py --alluredir=allure-results || true
                 '''
             }
+        }
+    }
+
+    post {
+        always {
+            // Esto va a compilar los resultados binarios en HTML interactivo
+            allure includeProperties: false, jdk: '', results: [[path: 'allure-results']]
         }
     }
 }
