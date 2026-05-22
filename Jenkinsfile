@@ -45,8 +45,8 @@ pipeline {
         stage('Security - pip-audit') {
             steps {
                 sh '''
-                    . venv/bin/activate
-                    pip-audit --local -f text -o pip-audit-report.txt || true
+                  . venv/bin/activate
+    pip-audit --local -f txt -o pip-audit-report.txt || true
                 '''
             }
             post {
